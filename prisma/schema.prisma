@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// -----------------------------------------
+// NextAuth Standard Models
+// -----------------------------------------
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// -----------------------------------------
+// Application Models
+// -----------------------------------------
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  phone         String?
+  city          String?
+  role          String    @default("MEMBER")
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+  payments      Payment[]
+  goals         FitnessGoal[]
+  logs          WorkoutLog[]
+  progress      ProgressEntry[]
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  price       Float
+  duration    Int      // Duration in months
+  tier        String   // SILVER, GOLD, PLATINUM
+  description String
+  features    String   // Stored as JSON string list
+  popular     Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships Membership[]
+}
+
+model Membership {
+  id         String   @id @default(cuid())
+  userId     String
+  planId     String
+  status     String   // ACTIVE, EXPIRED, PENDING
+  cardNumber String?  @unique
+  startDate  DateTime
+  endDate    DateTime
+  autoRenew  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan       Plan     @relation(fields: [planId], references: [id])
+  payments   Payment[]
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  userId            String
+  membershipId      String?
+  amount            Float
+  currency          String   @default("INR")
+  status            String   // PENDING, SUCCESS, FAILED
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  description       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membership        Membership? @relation(fields: [membershipId], references: [id])
+}
+
+model GymLocation {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  state     String
+  address   String
+  phone     String?
+  email     String?
+  lat       Float?
+  lng       Float?
+  amenities String   // Stored as JSON string list
+  timings   String?
+  rating    Float?
+  active    Boolean  @default(true)
+  imageUrl  String?
+}
+
+model WorkoutPlan {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  category    String
+  difficulty  String
+  duration    Int      // Duration in mins
+  calories    Int?
+  description String?
+  imageUrl    String?
+  featured    Boolean  @default(false)
+
+  exercises   WorkoutExercise[]
+}
+
+model Exercise {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  muscleGroup  String
+  equipment    String
+  difficulty   String
+  instructions String
+  tips         String   // Stored as JSON string list
+  videoUrl     String?
+  imageUrl     String?
+
+  workoutPlans WorkoutExercise[]
+  logs         WorkoutLog[]
+}
+
+model WorkoutExercise {
+  id            String   @id @default(cuid())
+  workoutPlanId String
+  exerciseId    String
+  sets          Int
+  reps          String   // e.g. "12" or "to failure"
+  restSeconds   Int
+  order         Int
+
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exercise      Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
+
+model FitnessGoal {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  target    Float
+  current   Float    @default(0)
+  unit      String   // kg, reps, mins
+  deadline  DateTime?
+  status    String   // ACTIVE, COMPLETED, ABANDONED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WorkoutLog {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  sets       Int
+  reps       Int
+  weight     Float?
+  duration   Int?
+  notes      String?
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model ProgressEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  weight    Float?
+  bodyFat   Float?
+  chest     Float?
+  waist     Float?
+  hips      Float?
+  biceps    Float?
+  thighs    Float?
+  notes     String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
