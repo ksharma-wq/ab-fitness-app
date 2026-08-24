@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams?.get("from") || "/dashboard";
@@ -52,10 +52,21 @@ export default function LoginPage() {
   return (
     <div className="auth-form">
       <h2>Welcome Back</h2>
-      <p className="desc">Log in to access your dashboard and digital gym card.</p>
+      <p className="desc">
+        Log in to access your dashboard and digital gym card.
+      </p>
 
       {error && (
-        <div style={{ padding: "10px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid var(--danger)", color: "var(--danger)", borderRadius: "var(--radius-md)", marginBottom: "1rem" }}>
+        <div
+          style={{
+            padding: "10px",
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid var(--danger)",
+            color: "var(--danger)",
+            borderRadius: "var(--radius-md)",
+            marginBottom: "1rem",
+          }}
+        >
           {error}
         </div>
       )}
@@ -72,6 +83,7 @@ export default function LoginPage() {
             disabled={isLoading}
           />
         </div>
+
         <div className="form-group">
           <label htmlFor="password">Password</label>
           <input
@@ -84,14 +96,41 @@ export default function LoginPage() {
           />
         </div>
 
-        <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={isLoading}>
-          {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Log In"}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ width: "100%", marginTop: "1rem" }}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="animate-spin" size={20} />
+          ) : (
+            "Log In"
+          )}
         </button>
       </form>
 
-      <p style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-        Don't have an account? <Link href="/register" className="auth-link">Sign up</Link>
+      <p
+        style={{
+          marginTop: "1.5rem",
+          textAlign: "center",
+          fontSize: "0.875rem",
+          color: "var(--text-secondary)",
+        }}
+      >
+        Don't have an account?{" "}
+        <Link href="/register" className="auth-link">
+          Sign up
+        </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
